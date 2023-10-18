@@ -9,7 +9,6 @@ FROM docker.io/node:20-alpine as node
 COPY . /opt/authd
 WORKDIR /opt/authd/html
 RUN rm -rf ../assets && ls -al ../
-RUN npm install --global yarn
 RUN yarn && yarn run fix && yarn run build
 
 FROM alpine:latest
