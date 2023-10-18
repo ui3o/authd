@@ -5,14 +5,14 @@ on:
       - '**' # Push events to v1 tag
 jobs:
   npm-publish:
-    name: npm-publish
+    name: publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ‘1.20’
+          go-version: '>=1.18.0'
       - name: Install dependencies
         run: |
           go version
