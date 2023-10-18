@@ -21,6 +21,7 @@ jobs:
       - name: build authd with go``
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-w' -o authd *.go
+          ls -al
       - uses: actions/setup-node@v1
         with:
           node-version: 18
