@@ -17,7 +17,6 @@ jobs:
         run: |
           go version
           go get ./...
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-w' -o authd *.go
       - name: build authd with go``
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-w' -o authd *.go
@@ -31,7 +30,9 @@ jobs:
         id: tag
         uses: dawidd6/action-get-tag@v1
       - name: Use tag
-        run: echo ${{steps.tag.outputs.tag}}
+        run: |
+          echo ${{steps.tag.outputs.tag}}
+          ls -al
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
