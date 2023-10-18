@@ -7,7 +7,7 @@
     "scripts": {
         "prestart": "gulp clean",
         "start": "NODE_ENV=development && webpack serve",
-        "build": "NODE_ENV=production webpack && gulp inline && mv dist/inline.html ../assets/index.html && rm -rf dist",
+        "build": "NODE_ENV=production webpack && gulp inline && mkdir -p ../assets && mv dist/inline.html ../assets/index.html && rm -rf dist",
         "check": "gts check",
         "fix": "gts fix"
     },

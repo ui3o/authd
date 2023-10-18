@@ -81,6 +81,7 @@ func main() {
 	e := echo.New()
 
 	e.GET("/switch-space", func(c echo.Context) (err error) {
+		// todo redirect
 		s := new(Space)
 		cookie, err := c.Cookie(COOKIE_NAME)
 		if err == nil {
