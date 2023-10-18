@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ var (
 	LOGIN_CHECK_URL          = os.Getenv("AUTH_D_LOGIN_CHECK_URL")
 	REDIRECT_TO_LOGIN_URL    = os.Getenv("AUTH_D_REDIRECT_TO_LOGIN_URL")
 	REDIRECT_AFTER_LOGIN_URL = os.Getenv("AUTH_D_REDIRECT_AFTER_LOGIN_URL")
+	DEBUG                    = os.Getenv("AUTH_D_DEBUG")
 )
 
 func setDefault(val *string, defaultVal string) {
@@ -55,6 +57,14 @@ func Init() {
 	setDefault(&LOGIN_CHECK_URL, "/switch-space")
 	setDefault(&REDIRECT_TO_LOGIN_URL, "/login")
 	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
+	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
+	setDefault(&DEBUG, "")
+}
+
+func debugLog(v ...any) {
+	if len(DEBUG) > 0 {
+		log.Println(v[:])
+	}
 }
 
 func isUserValid(user, pass string) bool {
@@ -62,7 +72,7 @@ func isUserValid(user, pass string) bool {
 
 	b, err := os.ReadFile(PASS_JSON_PATH)
 	if err != nil {
-		log.Println(err)
+		debugLog(err)
 	}
 	err = json.Unmarshal(b, &users)
 
@@ -79,7 +89,6 @@ func isUserValid(user, pass string) bool {
 		}
 	}
 	return false
-
 }
 
 func main() {
@@ -91,8 +100,10 @@ func main() {
 		cookie, err := c.Cookie(COOKIE_NAME)
 		if err == nil {
 			s.Name = cookie.Value
+			debugLog("cookie found", s.Name)
 			return c.JSON(http.StatusOK, s)
 		} else {
+			debugLog("no cookie set")
 			return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
 		}
 	})
@@ -107,7 +118,7 @@ func main() {
 			return err
 		} else {
 			for k, v := range my_data {
-				// log.Println("type: ", reflect.TypeOf(v), " k ", k, " v ", fmt.Sprintf("%v", v))
+				debugLog("type: ", reflect.TypeOf(v), " k ", k, " v ", fmt.Sprintf("%v", v))
 				switch v.(type) {
 				case string:
 					if k == "url" {
@@ -145,6 +156,7 @@ func main() {
 		cookie.Secure = true
 		cookie.Expires = time.Now().Add(time.Duration(timeout) * time.Second)
 		c.SetCookie(cookie)
+		debugLog(cookie)
 
 		l := new(LoginAccept)
 		if len(REDIRECT_AFTER_LOGIN_URL) > 0 {

@@ -12,6 +12,7 @@ Simple authentication daemon with **golang** and **reactjs**. The password store
 * **LOGIN_CHECK_URL**: url path which response 200 if user logged in (default: /switch-space)
 * **REDIRECT_TO_LOGIN_URL**: url path where authd redirect if user not logged in (default: /login)
 * **REDIRECT_AFTER_LOGIN_URL**: override react page url with this env variable where authd redirect user after logged in (default: empty)
+* **AUTH_D_DEBUG**: add debug option for debug server (default: empty) 
 
 # pass generation
 
