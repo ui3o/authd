@@ -30,16 +30,19 @@ type (
 )
 
 var (
-	SERVER_PORT    = os.Getenv("AUTH_D_SERVER_PORT")
-	FE_HTML        = os.Getenv("AUTH_D_FE_HTML_PATH")
-	COOKIE_TIMEOUT = os.Getenv("AUTH_D_COOKIE_TIMEOUT")
-	PASS_JSON_PATH = os.Getenv("AUTH_D_PASS_JSON_PATH")
-	COOKIE_NAME    = os.Getenv("AUTH_D_COOKIE_NAME")
+	SERVER_PORT              = os.Getenv("AUTH_D_SERVER_PORT")
+	FE_HTML                  = os.Getenv("AUTH_D_FE_HTML_PATH")
+	COOKIE_TIMEOUT           = os.Getenv("AUTH_D_COOKIE_TIMEOUT")
+	PASS_JSON_PATH           = os.Getenv("AUTH_D_PASS_JSON_PATH")
+	COOKIE_NAME              = os.Getenv("AUTH_D_COOKIE_NAME")
+	LOGIN_CHECK_URL          = os.Getenv("AUTH_D_LOGIN_CHECK_URL")
+	REDIRECT_TO_LOGIN_URL    = os.Getenv("AUTH_D_REDIRECT_TO_LOGIN_URL")
+	REDIRECT_AFTER_LOGIN_URL = os.Getenv("AUTH_D_REDIRECT_AFTER_LOGIN_URL")
 )
 
 func setDefault(val *string, defaultVal string) {
 	if len(*val) == 0 {
-		*val = "8080"
+		*val = defaultVal
 	}
 }
 
@@ -49,6 +52,9 @@ func Init() {
 	setDefault(&COOKIE_TIMEOUT, "20")
 	setDefault(&PASS_JSON_PATH, "pass.json")
 	setDefault(&COOKIE_NAME, "auth_d_info")
+	setDefault(&LOGIN_CHECK_URL, "/switch-space")
+	setDefault(&REDIRECT_TO_LOGIN_URL, "/login")
+	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
 }
 
 func isUserValid(user, pass string) bool {
@@ -80,17 +86,18 @@ func main() {
 	Init()
 	e := echo.New()
 
-	e.GET("/switch-space", func(c echo.Context) (err error) {
-		// todo redirect
+	e.GET(LOGIN_CHECK_URL, func(c echo.Context) (err error) {
 		s := new(Space)
 		cookie, err := c.Cookie(COOKIE_NAME)
 		if err == nil {
 			s.Name = cookie.Value
+			return c.JSON(http.StatusOK, s)
+		} else {
+			return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
 		}
-		return c.JSON(http.StatusOK, s)
 	})
 
-	e.POST("/switch-space", func(c echo.Context) (err error) {
+	e.POST(LOGIN_CHECK_URL, func(c echo.Context) (err error) {
 		cookieBody := []string{}
 		url := ""
 		user := ""
@@ -126,6 +133,7 @@ func main() {
 			}
 		}
 
+		// https cookie
 		cookie := new(http.Cookie)
 		cookie.Name = COOKIE_NAME
 		cookie.Value = strings.Join(cookieBody, "_")
@@ -133,11 +141,17 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		cookie.HttpOnly = true
+		cookie.Secure = true
 		cookie.Expires = time.Now().Add(time.Duration(timeout) * time.Second)
 		c.SetCookie(cookie)
 
 		l := new(LoginAccept)
-		l.Url = url
+		if len(REDIRECT_AFTER_LOGIN_URL) > 0 {
+			l.Url = REDIRECT_AFTER_LOGIN_URL
+		} else {
+			l.Url = url
+		}
 		if isUserValid(user, pass) {
 			return c.JSON(http.StatusOK, l)
 		} else {
@@ -147,6 +161,7 @@ func main() {
 
 	e.File("/", FE_HTML)
 	e.File("/index.html", FE_HTML)
+	e.File(REDIRECT_TO_LOGIN_URL, FE_HTML)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
