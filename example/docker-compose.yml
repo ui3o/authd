@@ -33,7 +33,7 @@ services:
       - "traefik.http.services.health.loadbalancer.server.port=80"
       - "traefik.http.middlewares.authd.forwardauth.address=http://tmp-authd-1:8080/switch-space"
   authd:
-    image: myauthd:latest
+    image: ui3o/authd:latest
     entrypoint:
     - /opt/authd
     environment:
