@@ -18,8 +18,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # traefik.me certs
-      - /ss/codes/go/authd/tmp/cert/:/opt/cert:ro
-      - /ss/codes/go/authd/tmp/config.yml:/opt/config.yml:ro
+      - ./cert/:/opt/cert:ro
+      - ./config.yml:/opt/config.yml:ro
   healthcheck:
     image: nginxdemos/hello:latest
     ports:
@@ -31,11 +31,9 @@ services:
       - "traefik.http.routers.health.tls=true"
       - "traefik.http.routers.health.middlewares=authd"
       - "traefik.http.services.health.loadbalancer.server.port=80"
-      - "traefik.http.middlewares.authd.forwardauth.address=http://tmp-authd-1:8080/switch-space"
+      - "traefik.http.middlewares.authd.forwardauth.address=http://example-authd-1:8080/switch-space"
   authd:
     image: ui3o/authd:latest
-    entrypoint:
-    - /opt/authd
     environment:
       AUTH_D_DEBUG: true
       AUTH_D_REDIRECT_TO_LOGIN_URL: "https://local.traefik.me/login"

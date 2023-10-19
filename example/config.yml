@@ -22,8 +22,8 @@ http:
     switch-space:
       loadBalancer:
         servers:
-          - url: http:// tmp-authd-1:8090/switch-space
+          - url: http://example-authd-1:8080/switch-space
     login-serv:
       loadBalancer:
         servers:
-          - url: http:// tmp-authd-1:8090/login
+          - url: http://example-authd-1:8080/login
