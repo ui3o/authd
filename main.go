@@ -32,6 +32,7 @@ type (
 )
 
 var (
+	XForwardedUriCookieName  = "Auth-X-Forwarded-Uri"
 	SERVER_PORT              = os.Getenv("AUTH_D_SERVER_PORT")
 	FE_HTML                  = os.Getenv("AUTH_D_FE_HTML_PATH")
 	COOKIE_TIMEOUT           = os.Getenv("AUTH_D_COOKIE_TIMEOUT")
@@ -97,6 +98,19 @@ func main() {
 
 	loginGet := func(c echo.Context) (err error) {
 		s := new(Space)
+
+		if c.Request().Header["X-Forwarded-Uri"] != nil {
+			uri := c.Request().Header["X-Forwarded-Uri"][0]
+			debugLog("loginGet X-Forwarded-Uri", uri)
+
+			cookie := new(http.Cookie)
+			cookie.Name = XForwardedUriCookieName
+			cookie.Value = uri[1:]
+			cookie.HttpOnly = true
+			cookie.Secure = true
+			c.SetCookie(cookie)
+		}
+
 		cookie, err := c.Cookie(COOKIE_NAME)
 		if err == nil {
 			s.Name = cookie.Value
@@ -166,7 +180,12 @@ func main() {
 		if len(REDIRECT_AFTER_LOGIN_URL) > 0 {
 			l.Url = REDIRECT_AFTER_LOGIN_URL
 		} else {
-			l.Url = url
+			uriCooke, err := c.Cookie(XForwardedUriCookieName)
+			if err == nil {
+				l.Url = uriCooke.Value
+			} else {
+				l.Url = url
+			}
 		}
 		if isUserValid(user, pass) {
 			return c.JSON(http.StatusOK, l)

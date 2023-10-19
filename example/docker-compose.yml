@@ -26,11 +26,30 @@ services:
       - 80 # host[random]:container[defined]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.health.rule=(Host(`local.traefik.me`))"
+      - "traefik.http.routers.base.rule=(Host(`local.traefik.me`))"
+      - "traefik.http.routers.base.entrypoints=web-secure"
+      - "traefik.http.routers.base.tls=true"
+      - "traefik.http.routers.base.middlewares=authd"
+
+      - "traefik.http.routers.health.rule=(Host(`local.traefik.me`) && HeadersRegexp(`Cookie`, `code`) && !Path(`/login`) && !Path(`/switch-space`))"
       - "traefik.http.routers.health.entrypoints=web-secure"
       - "traefik.http.routers.health.tls=true"
       - "traefik.http.routers.health.middlewares=authd"
       - "traefik.http.services.health.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.authd.forwardauth.address=http://example-authd-1:8080/switch-space"
+  healt2:
+    image: nginxdemos/hello:latest
+    ports:
+      - 80 # host[random]:container[defined]
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.health2.rule=(Host(`local.traefik.me`) && HeadersRegexp(`Cookie`, `blog`) && !Path(`/login`) && !Path(`/switch-space`))"
+      - "traefik.http.routers.health2.entrypoints=web-secure"
+      - "traefik.http.routers.health2.tls=true"
+      - "traefik.http.routers.health2.middlewares=authd"
+      - "traefik.http.services.health2.loadbalancer.server.port=80"
       - "traefik.http.middlewares.authd.forwardauth.address=http://example-authd-1:8080/switch-space"
   authd:
     image: ui3o/authd:latest
