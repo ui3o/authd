@@ -1,0 +1,43 @@
+version: "3.1"
+services:
+  traefik:
+    image: traefik:v2.8
+    command:
+      - "--entrypoints.web-secure.address=:443"
+      - "--api.insecure=true"
+      - "--providers.file.filename=/opt/config.yml"
+      - "--providers.providersThrottleDuration=2s"
+      - "--providers.docker=true"
+      - "--log.level=DEBUG"  # prints plugin fmt also
+      - "--accesslog=true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - 443:443
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # traefik.me certs
+      - /ss/codes/go/authd/tmp/cert/:/opt/cert:ro
+      - /ss/codes/go/authd/tmp/config.yml:/opt/config.yml:ro
+  healthcheck:
+    image: nginxdemos/hello:latest
+    ports:
+      - 80 # host[random]:container[defined]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.health.rule=(Host(`local.traefik.me`))"
+      - "traefik.http.routers.health.entrypoints=web-secure"
+      - "traefik.http.routers.health.tls=true"
+      - "traefik.http.routers.health.middlewares=authd"
+      - "traefik.http.services.health.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.authd.forwardauth.address=http://tmp-authd-1:8080/switch-space"
+  authd:
+    image: myauthd:latest
+    entrypoint:
+    - /opt/authd
+    environment:
+      AUTH_D_DEBUG: true
+      AUTH_D_REDIRECT_TO_LOGIN_URL: "https://local.traefik.me/login"
+    ports:
+      - 8080 # host[random]:container[defined]

@@ -1,0 +1,29 @@
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /opt/cert/server_cert.pem
+        keyFile: /opt/cert/server_key.pem
+http:
+  routers:
+    login:
+      rule: Host(`local.traefik.me`) && (PathPrefix(`/login`))
+      tls: true
+      entryPoints:
+      - web-secure
+      service: login-serv
+    switch-space:
+      rule: Host(`local.traefik.me`) && (PathPrefix(`/switch-space`))
+      tls: true
+      entryPoints:
+      - web-secure
+      service: switch-space
+  services:
+    switch-space:
+      loadBalancer:
+        servers:
+          - url: http:// tmp-authd-1:8090/switch-space
+    login-serv:
+      loadBalancer:
+        servers:
+          - url: http:// tmp-authd-1:8090/login
