@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -57,7 +58,6 @@ func Init() {
 	setDefault(&LOGIN_CHECK_URL, "/switch-space")
 	setDefault(&REDIRECT_TO_LOGIN_URL, "/login")
 	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
-	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
 	setDefault(&DEBUG, "")
 }
 
@@ -95,7 +95,7 @@ func main() {
 	Init()
 	e := echo.New()
 
-	e.GET(LOGIN_CHECK_URL, func(c echo.Context) (err error) {
+	loginGet := func(c echo.Context) (err error) {
 		s := new(Space)
 		cookie, err := c.Cookie(COOKIE_NAME)
 		if err == nil {
@@ -104,11 +104,15 @@ func main() {
 			return c.JSON(http.StatusOK, s)
 		} else {
 			debugLog("no cookie set")
-			return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
+			if c.QueryParam("auth") == "fe" {
+				return c.JSON(http.StatusOK, s)
+			} else {
+				return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
+			}
 		}
-	})
+	}
 
-	e.POST(LOGIN_CHECK_URL, func(c echo.Context) (err error) {
+	loginPost := func(c echo.Context) (err error) {
 		cookieBody := []string{}
 		url := ""
 		user := ""
@@ -169,11 +173,7 @@ func main() {
 		} else {
 			return c.JSON(http.StatusUnauthorized, nil)
 		}
-	})
-
-	e.File("/", FE_HTML)
-	e.File("/index.html", FE_HTML)
-	e.File(REDIRECT_TO_LOGIN_URL, FE_HTML)
+	}
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -181,5 +181,40 @@ func main() {
 		AllowHeaders: []string{"*"},
 	}))
 	e.HideBanner = true
+
+	u, err := url.Parse(REDIRECT_TO_LOGIN_URL)
+	if err != nil {
+		debugLog("can not get path from ", REDIRECT_TO_LOGIN_URL)
+
+	}
+
+	e.Any("/*", func(c echo.Context) (err error) {
+		debugLog("handle any request")
+		req := c.Request()
+		// res := c.Response()
+		switch req.Method {
+		case "POST":
+			switch req.RequestURI {
+			case LOGIN_CHECK_URL:
+				return loginPost(c)
+			}
+		case "GET":
+			debugLog("get")
+			switch req.URL.Path {
+			case "/":
+			case "/index.html":
+			case u.Path:
+				b, err := os.ReadFile(FE_HTML)
+				if err != nil {
+					debugLog(err)
+				}
+				c.HTML(http.StatusOK, string(b))
+			case LOGIN_CHECK_URL:
+				return loginGet(c)
+			}
+
+		}
+		return
+	})
 	e.Logger.Fatal(e.Start(":" + SERVER_PORT))
 }

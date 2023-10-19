@@ -20,7 +20,7 @@ export class App extends Component<Props, State> {
 
     fetchData = async () => {
         try {
-            const response = await fetch('/switch-space');
+            const response = await fetch('/switch-space?auth=fe');
             if (response.status < 300) {
                 const jsonData = await response.json();
                 const info = jsonData.cookie.split('_');

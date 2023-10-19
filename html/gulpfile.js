@@ -9,4 +9,4 @@ task('clean', () => {
 
 task('inline', () => {
     return src('dist/index.html').pipe(inlineSource()).pipe(rename('inline.html')).pipe(dest('dist/'));
-})
+});
