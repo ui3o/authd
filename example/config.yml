@@ -7,13 +7,13 @@ tls:
 http:
   routers:
     login:
-      rule: Host(`local.traefik.me`) && (PathPrefix(`/login`))
+      rule: Host(`local.traefik.me`) && (Path(`/login`))
       tls: true
       entryPoints:
       - web-secure
       service: login-serv
     switch-space:
-      rule: Host(`local.traefik.me`) && (PathPrefix(`/switch-space`))
+      rule: Host(`local.traefik.me`) && (Path(`/switch-space`))
       tls: true
       entryPoints:
       - web-secure
