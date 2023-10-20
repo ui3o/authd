@@ -186,7 +186,7 @@ func main() {
 				l.Url = url
 			}
 		}
-		debugLog("json response", l)
+		debugLog("json response", l.Url)
 		if isUserValid(user, pass) {
 			return c.JSON(http.StatusOK, l)
 		} else {
