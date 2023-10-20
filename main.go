@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -136,7 +135,7 @@ func main() {
 			return err
 		} else {
 			for k, v := range my_data {
-				debugLog("type: ", reflect.TypeOf(v), " k ", k, " v ", fmt.Sprintf("%v", v))
+				// debugLog("type: ", reflect.TypeOf(v), " k ", k, " v ", fmt.Sprintf("%v", v))
 				switch v.(type) {
 				case string:
 					if k == "url" {
@@ -187,6 +186,7 @@ func main() {
 				l.Url = url
 			}
 		}
+		debugLog("json response", l)
 		if isUserValid(user, pass) {
 			return c.JSON(http.StatusOK, l)
 		} else {
@@ -208,7 +208,6 @@ func main() {
 	}
 
 	e.Any("/*", func(c echo.Context) (err error) {
-		debugLog("handle any request")
 		req := c.Request()
 		// res := c.Response()
 		switch req.Method {
@@ -218,7 +217,6 @@ func main() {
 				return loginPost(c)
 			}
 		case "GET":
-			debugLog("get")
 			switch req.URL.Path {
 			case "/":
 			case "/index.html":
