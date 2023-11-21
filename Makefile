@@ -11,3 +11,7 @@ build-local: build-go
 	cd html && yarn && yarn run fix && yarn run build
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-w' -o authd *.go
 	@echo [DONE] end build local
+
+cert:
+	openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out id_rsa
+	openssl rsa -in id_rsa -pubout -out id_rsa.pub

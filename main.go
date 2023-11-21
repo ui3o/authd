@@ -31,16 +31,20 @@ type (
 )
 
 var (
-	XForwardedUriCookieName  = "Auth-X-Forwarded-Uri"
-	SERVER_PORT              = os.Getenv("AUTH_D_SERVER_PORT")
-	FE_HTML                  = os.Getenv("AUTH_D_FE_HTML_PATH")
-	COOKIE_TIMEOUT           = os.Getenv("AUTH_D_COOKIE_TIMEOUT")
-	PASS_JSON_PATH           = os.Getenv("AUTH_D_PASS_JSON_PATH")
-	COOKIE_NAME              = os.Getenv("AUTH_D_COOKIE_NAME")
-	LOGIN_CHECK_URL          = os.Getenv("AUTH_D_LOGIN_CHECK_URL")
-	REDIRECT_TO_LOGIN_URL    = os.Getenv("AUTH_D_REDIRECT_TO_LOGIN_URL")
-	REDIRECT_AFTER_LOGIN_URL = os.Getenv("AUTH_D_REDIRECT_AFTER_LOGIN_URL")
-	DEBUG                    = os.Getenv("AUTH_D_DEBUG")
+	// redirect save, because some reverse proxy send only on first request
+	XForwardedUriCookieName     = "Auth-D-X-Forwarded-Uri"
+	AuthDJwtPublicKeyCookieName = "Auth-D-JWT-PUB-KEY"
+	SERVER_PORT                 = os.Getenv("AUTH_D_SERVER_PORT")
+	FE_HTML                     = os.Getenv("AUTH_D_FE_HTML_PATH")
+	COOKIE_TIMEOUT              = os.Getenv("AUTH_D_COOKIE_TIMEOUT")
+	PASS_JSON_PATH              = os.Getenv("AUTH_D_PASS_JSON_PATH")
+	COOKIE_NAME                 = os.Getenv("AUTH_D_COOKIE_NAME")
+	LOGIN_CHECK_URL             = os.Getenv("AUTH_D_LOGIN_CHECK_URL")
+	REDIRECT_TO_LOGIN_URL       = os.Getenv("AUTH_D_REDIRECT_TO_LOGIN_URL")
+	REDIRECT_AFTER_LOGIN_URL    = os.Getenv("AUTH_D_REDIRECT_AFTER_LOGIN_URL")
+	LOGIN_FILTER_CHAIN          = os.Getenv("AUTH_D_LOGIN_FILTER_CHAIN")
+	DEBUG                       = os.Getenv("AUTH_D_DEBUG")
+	Jwt                         = JWT{}
 )
 
 func setDefault(val *string, defaultVal string) {
@@ -58,7 +62,9 @@ func Init() {
 	setDefault(&LOGIN_CHECK_URL, "/switch-space")
 	setDefault(&REDIRECT_TO_LOGIN_URL, "/login")
 	setDefault(&REDIRECT_AFTER_LOGIN_URL, "")
+	setDefault(&LOGIN_FILTER_CHAIN, "")
 	setDefault(&DEBUG, "")
+	InitJwt()
 }
 
 func debugLog(v ...any) {
@@ -96,8 +102,8 @@ func main() {
 	e := echo.New()
 
 	loginGet := func(c echo.Context) (err error) {
-		s := new(Space)
 
+		// redirect save, because some reverse proxy send only on first request
 		if c.Request().Header["X-Forwarded-Uri"] != nil {
 			uri := c.Request().Header["X-Forwarded-Uri"][0]
 			debugLog("loginGet X-Forwarded-Uri", uri)
@@ -105,23 +111,30 @@ func main() {
 			cookie := new(http.Cookie)
 			cookie.Name = XForwardedUriCookieName
 			cookie.Value = uri[1:]
-			cookie.HttpOnly = true
+			cookie.HttpOnly = false
 			cookie.Secure = true
 			c.SetCookie(cookie)
 		}
 
-		cookie, err := c.Cookie(COOKIE_NAME)
-		if err == nil {
-			s.Name = cookie.Value
-			debugLog("cookie found", s.Name)
-			return c.JSON(http.StatusOK, s)
+		timeout, err := strconv.Atoi(COOKIE_TIMEOUT)
+		if err != nil {
+			panic(err)
+		}
+
+		cookie := new(http.Cookie)
+		cookie.Name = AuthDJwtPublicKeyCookieName
+		cookie.Value = string(Jwt.publicKey)
+		cookie.HttpOnly = false
+		cookie.Secure = true
+		cookie.Expires = time.Now().Add(time.Duration(timeout) * time.Second)
+		c.SetCookie(cookie)
+
+		if _, err := c.Cookie(COOKIE_NAME); err == nil {
+			debugLog("cookie found")
+			return c.NoContent(http.StatusOK)
 		} else {
 			debugLog("no cookie set")
-			if c.QueryParam("auth") == "fe" {
-				return c.JSON(http.StatusOK, s)
-			} else {
-				return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
-			}
+			return c.Redirect(http.StatusMovedPermanently, REDIRECT_TO_LOGIN_URL)
 		}
 	}
 
@@ -141,6 +154,8 @@ func main() {
 					if k == "url" {
 						url = fmt.Sprintf("%v", v)
 					}
+				// object like
+				// u: { skip: false, v: btoa(this.state.u) },
 				default:
 					field := v.(map[string]interface{})
 					boolValue, err := strconv.ParseBool(fmt.Sprintf("%v", field["skip"]))
@@ -169,7 +184,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		cookie.HttpOnly = true
+		cookie.HttpOnly = false
 		cookie.Secure = true
 		cookie.Expires = time.Now().Add(time.Duration(timeout) * time.Second)
 		c.SetCookie(cookie)

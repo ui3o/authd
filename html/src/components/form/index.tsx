@@ -8,13 +8,17 @@ interface State {
     u: string;
     p: string;
     space: string;
+    space_selected: boolean;
     error: string;
 }
+
+const __SPACES__ = [];
+const spaces = __SPACES__.length ? __SPACES__ : ['none'];
 
 export class Form extends Component<Props, State> {
     constructor(props: Props) {
         super(props);
-        this.state = { u: '', space: '', p: '', error: '' };
+        this.state = { u: '', space: '', p: '', error: '', space_selected: false };
 
         this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -73,14 +77,21 @@ export class Form extends Component<Props, State> {
                     required={true}
                     onChange={this.handleChange}
                 />
-                <input
-                    type="text"
-                    value={this.state.space}
-                    name="space"
-                    placeholder="login space"
-                    required={true}
-                    onChange={this.handleChange}
-                />
+                <div class="space_label">
+                    Space:
+                    <select
+                        required
+                        class="space_chooser"
+                        value={this.state.space}
+                        onChange={e => {
+                            this.setState({ ...this.state, space: (e.target as HTMLSelectElement).value });
+                        }}
+                    >
+                        {spaces.map(x => {
+                            return <option value={x}>{x}</option>;
+                        })}
+                    </select>
+                </div>
                 {errorMsg}
                 <button type="submit" class="btn btn-primary btn-block btn-large">
                     Let me in.
